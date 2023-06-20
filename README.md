@@ -8,6 +8,13 @@
 - PostgreSQL support
 - AMQP support
 
+## Installation
+Install gosumer with Go
+
+```bash
+go get github.com/romaixn/gosumer
+```
+
 ## ⚙️ Configuration
 ### PostgreSQL
 Add this to your `config/packages/messenger.yaml`:
