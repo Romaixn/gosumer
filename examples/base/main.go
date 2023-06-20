@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/Romaixn/gosumer"
+	"github.com/romaixn/gosumer"
 )
 
 type Message struct {
