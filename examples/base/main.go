@@ -27,6 +27,6 @@ func main() {
 	}
 }
 
-func processMessage(message interface{}) {
+func processMessage(message any) {
 	log.Printf("Message received: %v", message)
 }

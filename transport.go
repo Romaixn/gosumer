@@ -12,7 +12,7 @@ import (
 
 type Transport interface {
 	connect() error
-	listen(fn process, message interface{}) error
+	listen(fn process, message any) error
 }
 
 // PostgreSQL database transport
@@ -38,7 +38,7 @@ func (database PgDatabase) connect() error {
 	return nil
 }
 
-func (database PgDatabase) listen(fn process, message interface{}) error {
+func (database PgDatabase) listen(fn process, message any) error {
 	err := database.connect()
 
 	if err != nil {
@@ -119,7 +119,7 @@ func (rabbitmq RabbitMQ) connect() error {
 	return nil
 }
 
-func (rabbitmq RabbitMQ) listen(fn process, message interface{}) error {
+func (rabbitmq RabbitMQ) listen(fn process, message any) error {
 	err := rabbitmq.connect()
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (rabbitmq RabbitMQ) listen(fn process, message interface{}) error {
 	return nil
 }
 
-func formatMessage(message string, msg interface{}) (interface{}, error) {
+func formatMessage(message string, msg any) (any, error) {
 	if err := json.Unmarshal([]byte(message), &msg); err != nil {
 		return msg, err
 	}
@@ -181,7 +181,7 @@ func formatMessage(message string, msg interface{}) (interface{}, error) {
 	return msg, nil
 }
 
-func Listen(transport Transport, fn process, message interface{}) error {
+func Listen(transport Transport, fn process, message any) error {
 	err := transport.listen(fn, message)
 	if err != nil {
 		return err
