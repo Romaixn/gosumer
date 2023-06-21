@@ -83,8 +83,32 @@ func (database PgDatabase) listen(fn process, message any) error {
 			return err
 		}
 
-		go fn(msg)
+		e := make(chan error)
+		go fn(msg, e)
+
+		error := <-e
+		if error != nil {
+			continue
+		}
+
+		go database.Delete(messengerMessage.ID)
 	}
+}
+
+func (database PgDatabase) Delete(id int) error {
+	conn, err := pool.Acquire(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer conn.Release()
+
+	_, err = conn.Exec(context.Background(), fmt.Sprintf("DELETE FROM %s WHERE id = %d", database.TableName, id))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RabbitMQ transport
@@ -155,6 +179,8 @@ func (rabbitmq RabbitMQ) listen(fn process, message any) error {
 		return err
 	}
 
+	log.Printf("Successfully connected to the queue!")
+
 	var forever chan struct{}
 
 	go func() {
@@ -164,7 +190,8 @@ func (rabbitmq RabbitMQ) listen(fn process, message any) error {
 				log.Fatal(err)
 			}
 
-			go fn(msg)
+			var e chan error
+			go fn(msg, e)
 		}
 	}()
 

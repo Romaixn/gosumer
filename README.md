@@ -61,7 +61,7 @@ framework:
 ### Configure the transport
 For PostgreSQL:
 ```go
-database := PgDatabase{
+database := gosumer.PgDatabase{
     Host:      "localhost",
     Port:      5432,
     User:      "app",
@@ -73,7 +73,7 @@ database := PgDatabase{
 
 For RabbitMQ:
 ```go
-database := RabbitMQ{
+database := gosumer.RabbitMQ{
     Host:     "localhost",
     Port:     nil,
     User:     "guest",
@@ -83,10 +83,30 @@ database := RabbitMQ{
 ```
 
 ### Listen for messages
+Call the Listen
 ```go
-err := Listen(database, processMessage, Message{})
+// Define your own structure according to your message
+type Message struct {
+	ID     int `json:"id"`
+	Number int `json:"number"`
+}
+
+err := gosumer.Listen(database, process, Message{})
 
 if err != nil {
     log.Fatal(err)
+}
+```
+
+With the function to process your messages:
+```go
+func process(message any, err chan error) {
+	log.Printf("Message received: %v", message)
+
+    // No error
+	err <- nil
+
+    // if there is an error, used to not delete message if an error occured
+    // err <- errors.New("Error occured !")
 }
 ```

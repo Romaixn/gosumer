@@ -14,4 +14,4 @@ type MessengerMessage struct {
 	DeliveredAt *time.Time
 }
 
-type process func(message any)
+type process func(message any, err chan error)

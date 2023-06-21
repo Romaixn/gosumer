@@ -12,12 +12,13 @@ type Message struct {
 }
 
 func main() {
-	database := gosumer.RabbitMQ{
-		Host:     "localhost",
-		Port:     nil,
-		User:     "admin",
-		Password: "admin",
-		Queue:    "golang",
+	database := gosumer.PgDatabase{
+		Host:      "localhost",
+		Port:      5432,
+		User:      "app",
+		Password:  "!ChangeMe!",
+		Database:  "app",
+		TableName: "messenger_messages",
 	}
 
 	err := gosumer.Listen(database, processMessage, Message{})
@@ -27,6 +28,8 @@ func main() {
 	}
 }
 
-func processMessage(message any) {
+func processMessage(message any, err chan error) {
 	log.Printf("Message received: %v", message)
+
+	err <- nil
 }
