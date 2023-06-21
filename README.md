@@ -101,10 +101,10 @@ if err != nil {
 With the function to process your messages:
 ```go
 func process(message any, err chan error) {
-	log.Printf("Message received: %v", message)
+    log.Printf("Message received: %v", message)
 
     // No error
-	err <- nil
+    err <- nil
 
     // if there is an error, used to not delete message if an error occured
     // err <- errors.New("Error occured !")
