@@ -89,8 +89,8 @@ Call the Listen
 ```go
 // Define your own structure according to your message
 type Message struct {
-	ID     int `json:"id"`
-	Number int `json:"number"`
+    ID     int `json:"id"`
+    Number int `json:"number"`
 }
 
 err := gosumer.Listen(database, process, Message{})
@@ -103,7 +103,7 @@ if err != nil {
 With the function to process your messages:
 ```go
 func process(message any, err chan error) {
-	log.Printf("Message received: %v", message)
+    log.Printf("Message received: %v", message)
 
     // No error
     err <- nil
