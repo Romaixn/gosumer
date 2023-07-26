@@ -2,6 +2,8 @@
 
 ⚡ Improve your application's performance by consuming your Symfony Messenger messages with Go.
 
+![Demo of Gosumer](./examples/demo.gif)
+
 ## ✨ Features
 
 - Consume your messages directly with Go code
@@ -87,8 +89,8 @@ Call the Listen
 ```go
 // Define your own structure according to your message
 type Message struct {
-	ID     int `json:"id"`
-	Number int `json:"number"`
+    ID     int `json:"id"`
+    Number int `json:"number"`
 }
 
 err := gosumer.Listen(database, process, Message{})
