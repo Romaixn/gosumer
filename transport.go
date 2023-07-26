@@ -84,8 +84,6 @@ func (database PgDatabase) listenEvery(seconds int, fn process, message any) err
 		for {
 			select {
 			case <-ticker.C:
-				log.Printf("Listening for messages every %d seconds", seconds)
-
 				err := database.processMessage(fn, message)
 				if err != nil {
 					continue
