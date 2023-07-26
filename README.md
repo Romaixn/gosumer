@@ -2,6 +2,8 @@
 
 ⚡ Improve your application's performance by consuming your Symfony Messenger messages with Go.
 
+![Demo of Gosumer](./examples/demo.gif)
+
 ## ✨ Features
 
 - Consume your messages directly with Go code
@@ -104,7 +106,7 @@ func process(message any, err chan error) {
 	log.Printf("Message received: %v", message)
 
     // No error
-	err <- nil
+    err <- nil
 
     // if there is an error, used to not delete message if an error occured
     // err <- errors.New("Error occured !")

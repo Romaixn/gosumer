@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -54,6 +55,8 @@ func (database PgDatabase) listen(fn process, message any) error {
 
 	log.Printf("Successfully connected to the database!")
 
+	database.listenEvery(5, fn, message)
+
 	_, err = conn.Exec(context.Background(), fmt.Sprintf("LISTEN %s", database.TableName))
 	if err != nil {
 		return err
@@ -86,16 +89,69 @@ func (database PgDatabase) listen(fn process, message any) error {
 		e := make(chan error)
 		go fn(msg, e)
 
-		error := <-e
-		if error != nil {
+		processErr := <-e
+		if processErr != nil {
 			continue
 		}
 
-		go database.Delete(messengerMessage.ID)
+		go database.delete(messengerMessage.ID)
 	}
 }
 
-func (database PgDatabase) Delete(id int) error {
+func (database PgDatabase) listenEvery(seconds int, fn process, message any) error {
+	ticker := time.NewTicker(time.Duration(seconds) * time.Second)
+
+	go func() error {
+		for {
+			select {
+			case <-ticker.C:
+				err := database.connect()
+				if err != nil {
+					return err
+				}
+
+				log.Printf("Ticker initialized, listening to new message...")
+
+				conn, err := pool.Acquire(context.Background())
+				if err != nil {
+					return err
+				}
+
+				defer conn.Release()
+
+				var messengerMessage MessengerMessage
+				row := conn.QueryRow(context.Background(), fmt.Sprintf("SELECT * FROM %s WHERE delivered_at IS NULL ORDER BY id DESC LIMIT 1", database.TableName))
+
+				if err = row.Scan(&messengerMessage.ID, &messengerMessage.Body, &messengerMessage.Headers, &messengerMessage.QueueName, &messengerMessage.CreatedAt, &messengerMessage.AvailableAt, &messengerMessage.DeliveredAt); err != nil {
+					return err
+				}
+
+				if messengerMessage.QueueName != "go" {
+					continue
+				}
+
+				msg, err := formatMessage(messengerMessage.Body, message)
+				if err != nil {
+					return err
+				}
+
+				e := make(chan error)
+				go fn(msg, e)
+
+				processErr := <-e
+				if processErr != nil {
+					continue
+				}
+
+				go database.delete(messengerMessage.ID)
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (database PgDatabase) delete(id int) error {
 	conn, err := pool.Acquire(context.Background())
 	if err != nil {
 		return err
