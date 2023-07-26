@@ -46,6 +46,17 @@ func (database PgDatabase) listen(fn process, message any) error {
 		return err
 	}
 
+	database.listenEvery(5, fn, message)
+
+	log.Printf("Successfully connected to the database!")
+
+	_, err = pool.Exec(context.Background(), fmt.Sprintf("LISTEN %s", database.TableName))
+	if err != nil {
+		return err
+	}
+
+	defer pool.Exec(context.Background(), fmt.Sprintf("UNLISTEN %s", database.TableName))
+
 	conn, err := pool.Acquire(context.Background())
 	if err != nil {
 		return err
@@ -53,48 +64,16 @@ func (database PgDatabase) listen(fn process, message any) error {
 
 	defer conn.Release()
 
-	log.Printf("Successfully connected to the database!")
-
-	database.listenEvery(5, fn, message)
-
-	_, err = conn.Exec(context.Background(), fmt.Sprintf("LISTEN %s", database.TableName))
-	if err != nil {
-		return err
-	}
-
-	defer conn.Exec(context.Background(), fmt.Sprintf("UNLISTEN %s", database.TableName))
-
 	for {
 		_, err := conn.Conn().WaitForNotification(context.Background())
 		if err != nil {
 			return err
 		}
 
-		var messengerMessage MessengerMessage
-		row := conn.QueryRow(context.Background(), fmt.Sprintf("SELECT * FROM %s WHERE delivered_at IS NULL ORDER BY id DESC LIMIT 1", database.TableName))
-
-		if err = row.Scan(&messengerMessage.ID, &messengerMessage.Body, &messengerMessage.Headers, &messengerMessage.QueueName, &messengerMessage.CreatedAt, &messengerMessage.AvailableAt, &messengerMessage.DeliveredAt); err != nil {
-			return err
-		}
-
-		if messengerMessage.QueueName != "go" {
-			continue
-		}
-
-		msg, err := formatMessage(messengerMessage.Body, message)
+		err = database.processMessage(fn, message)
 		if err != nil {
-			return err
-		}
-
-		e := make(chan error)
-		go fn(msg, e)
-
-		processErr := <-e
-		if processErr != nil {
 			continue
 		}
-
-		go database.delete(messengerMessage.ID)
 	}
 }
 
@@ -105,45 +84,12 @@ func (database PgDatabase) listenEvery(seconds int, fn process, message any) err
 		for {
 			select {
 			case <-ticker.C:
-				err := database.connect()
+				log.Printf("Listening for messages every %d seconds", seconds)
+
+				err := database.processMessage(fn, message)
 				if err != nil {
-					return err
-				}
-
-				log.Printf("Ticker initialized, listening to new message...")
-
-				conn, err := pool.Acquire(context.Background())
-				if err != nil {
-					return err
-				}
-
-				defer conn.Release()
-
-				var messengerMessage MessengerMessage
-				row := conn.QueryRow(context.Background(), fmt.Sprintf("SELECT * FROM %s WHERE delivered_at IS NULL ORDER BY id DESC LIMIT 1", database.TableName))
-
-				if err = row.Scan(&messengerMessage.ID, &messengerMessage.Body, &messengerMessage.Headers, &messengerMessage.QueueName, &messengerMessage.CreatedAt, &messengerMessage.AvailableAt, &messengerMessage.DeliveredAt); err != nil {
-					return err
-				}
-
-				if messengerMessage.QueueName != "go" {
 					continue
 				}
-
-				msg, err := formatMessage(messengerMessage.Body, message)
-				if err != nil {
-					return err
-				}
-
-				e := make(chan error)
-				go fn(msg, e)
-
-				processErr := <-e
-				if processErr != nil {
-					continue
-				}
-
-				go database.delete(messengerMessage.ID)
 			}
 		}
 	}()
@@ -163,6 +109,32 @@ func (database PgDatabase) delete(id int) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (database PgDatabase) processMessage(fn process, message any) error {
+	var messengerMessage MessengerMessage
+	row := pool.QueryRow(context.Background(), fmt.Sprintf("SELECT * FROM %s WHERE delivered_at IS NULL AND queue_name = 'go' ORDER BY id DESC LIMIT 1", database.TableName))
+
+	if err := row.Scan(&messengerMessage.ID, &messengerMessage.Body, &messengerMessage.Headers, &messengerMessage.QueueName, &messengerMessage.CreatedAt, &messengerMessage.AvailableAt, &messengerMessage.DeliveredAt); err != nil {
+		return err
+	}
+
+	msg, err := formatMessage(messengerMessage.Body, message)
+	if err != nil {
+		return err
+	}
+
+	e := make(chan error)
+	go fn(msg, e)
+
+	processErr := <-e
+	if processErr != nil {
+		return processErr
+	}
+
+	go database.delete(messengerMessage.ID)
 
 	return nil
 }
