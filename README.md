@@ -2,8 +2,6 @@
 
 ⚡ Improve your application's performance by consuming your Symfony Messenger messages with Go.
 
-![Demo of Gosumer](./examples/demo.gif)
-
 ## ✨ Features
 
 - Consume your messages directly with Go code
