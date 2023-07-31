@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PostgreSQL database transport
 type PgDatabase struct {
 	Host      string
 	Port      uint16
@@ -38,6 +37,8 @@ func (database PgDatabase) listen(fn process, message any) error {
 	if err != nil {
 		return err
 	}
+
+	defer pool.Close()
 
 	database.listenEvery(5, fn, message)
 
@@ -87,14 +88,7 @@ func (database PgDatabase) listenEvery(seconds int, fn process, message any) {
 }
 
 func (database PgDatabase) delete(id int) error {
-	conn, err := pool.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-
-	defer conn.Release()
-
-	_, err = conn.Exec(context.Background(), fmt.Sprintf("DELETE FROM %s WHERE id = %d", database.TableName, id))
+	_, err := pool.Exec(context.Background(), fmt.Sprintf("DELETE FROM %s WHERE id=$1", database.TableName), id)
 	if err != nil {
 		return err
 	}
