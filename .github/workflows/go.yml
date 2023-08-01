@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-       postgres:
+      postgres:
         image: postgres
         env:
           POSTGRES_USER: postgres
@@ -40,6 +40,12 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+
+      rabbitmq:
+        image: rabbitmq
+        ports:
+          - 5672:5672
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
