@@ -58,7 +58,8 @@ func setupDatabase(t *testing.T) (*pgxpool.Pool, PgDatabase) {
 }
 
 func TestPgDelete(t *testing.T) {
-	_, database := setupDatabase(t)
+	pool, database := setupDatabase(t)
+	defer pool.Close()
 
 	err := database.delete(1)
 	if err != nil {
@@ -67,7 +68,8 @@ func TestPgDelete(t *testing.T) {
 }
 
 func TestPgProcessMessage(t *testing.T) {
-	_, database := setupDatabase(t)
+	pool, database := setupDatabase(t)
+	defer pool.Close()
 
 	err := database.processMessage(processMessage, Message{})
 	if err != nil {
@@ -81,6 +83,7 @@ func TestPgProcessMessage(t *testing.T) {
 
 func TestPgListen(t *testing.T) {
 	pool, database := setupDatabase(t)
+	defer pool.Close()
 
 	go func() {
 		err := database.listen(processMessage, Message{})
@@ -104,6 +107,7 @@ func TestPgListen(t *testing.T) {
 
 func TestPgListenEvery(t *testing.T) {
 	pool, database := setupDatabase(t)
+	defer pool.Close()
 
 	go func() {
 		database.listenEvery(5, processMessage, Message{})
