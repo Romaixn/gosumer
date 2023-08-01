@@ -7,7 +7,6 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// RabbitMQ transport
 type RabbitMQ struct {
 	Host     string
 	Port     *uint8
