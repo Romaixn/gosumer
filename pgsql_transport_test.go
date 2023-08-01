@@ -77,7 +77,6 @@ func TestPgProcessMessage(t *testing.T) {
 	}
 
 	assert.True(t, processMessageCalled)
-
 	processMessageCalled = false
 }
 
@@ -101,8 +100,13 @@ func TestPgListen(t *testing.T) {
 	var deliveredAt time.Time
 	err = row.Scan(&deliveredAt)
 	if err == nil {
-		t.Errorf("message was not processed: %v", err)
+		t.Errorf("Message was not processed: %v", err)
 	}
+
+	// TODO: maybe found a better way to wait for the message to be processed
+	time.Sleep(6 * time.Second)
+	assert.True(t, processMessageCalled)
+	processMessageCalled = false
 }
 
 func TestPgListenEvery(t *testing.T) {
@@ -110,7 +114,7 @@ func TestPgListenEvery(t *testing.T) {
 	defer pool.Close()
 
 	go func() {
-		database.listenEvery(5, processMessage, Message{})
+		database.listenEvery(1, processMessage, Message{})
 	}()
 
 	row := pool.QueryRow(context.Background(), fmt.Sprintf("SELECT delivered_at FROM %s WHERE id = 1", database.TableName))
@@ -119,4 +123,9 @@ func TestPgListenEvery(t *testing.T) {
 	if err == nil {
 		t.Errorf("message was not processed: %v", err)
 	}
+
+	// TODO: maybe found a better way to wait for the message to be processed
+	time.Sleep(2 * time.Second)
+	assert.True(t, processMessageCalled)
+	processMessageCalled = false
 }

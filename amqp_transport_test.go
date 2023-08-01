@@ -7,6 +7,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAmqpConnect(t *testing.T) {
@@ -71,8 +72,8 @@ func TestAmqpListen(t *testing.T) {
 	err = channel.PublishWithContext(ctx,
 		"",
 		q.Name,
-		true,
-		true,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(body),
@@ -83,6 +84,8 @@ func TestAmqpListen(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	// assert.True(t, processMessageCalled, "Expected processMessage to be called")
-	// processMessageCalled = false
+	// TODO: maybe found a better way to wait for the message to be processed
+	time.Sleep(1 * time.Second)
+	assert.True(t, processMessageCalled, "Expected processMessage to be called")
+	processMessageCalled = false
 }

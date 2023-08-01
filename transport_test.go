@@ -2,6 +2,9 @@ package gosumer
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatMessage(t *testing.T) {
@@ -29,6 +32,8 @@ func (transport TestTransport) connect() error {
 }
 
 func (transport TestTransport) listen(fn process, message any) error {
+	go fn(message, make(chan error))
+
 	return nil
 }
 
@@ -50,4 +55,9 @@ func TestListen(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
+
+	// TODO: maybe found a better way to wait for the message to be processed
+	time.Sleep(1 * time.Second)
+	assert.True(t, processMessageCalled)
+	processMessageCalled = false
 }
