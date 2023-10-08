@@ -6,7 +6,7 @@ import (
 
 type Transport interface {
 	connect() error
-	listen(fn process, message any) error
+	listen(fn process, message any, sec int) error
 }
 
 func formatMessage(message string, msg any) (any, error) {
@@ -17,8 +17,8 @@ func formatMessage(message string, msg any) (any, error) {
 	return msg, nil
 }
 
-func Listen(transport Transport, fn process, message any) error {
-	err := transport.listen(fn, message)
+func Listen(transport Transport, fn process, message any, sec int) error {
+	err := transport.listen(fn, message, sec)
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,9 @@ func main() {
 		TableName: "messenger_messages",
 	}
 
-	err := gosumer.Listen(database, processMessage, Message{})
+	sec := 5
+
+	err := gosumer.Listen(database, processMessage, Message{}, sec)
 
 	if err != nil {
 		log.Fatal(err)
