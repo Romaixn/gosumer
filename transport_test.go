@@ -31,7 +31,7 @@ func (transport TestTransport) connect() error {
 	return nil
 }
 
-func (transport TestTransport) listen(fn process, message any) error {
+func (transport TestTransport) listen(fn process, message any, sec int) error {
 	go fn(message, make(chan error))
 
 	return nil
@@ -51,7 +51,7 @@ type Message struct {
 func TestListen(t *testing.T) {
 	transport := TestTransport{}
 
-	err := Listen(transport, processMessage, Message{})
+	err := Listen(transport, processMessage, Message{}, 5)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

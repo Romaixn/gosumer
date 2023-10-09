@@ -31,7 +31,7 @@ func (database PgDatabase) connect() error {
 	return nil
 }
 
-func (database PgDatabase) listen(fn process, message any) error {
+func (database PgDatabase) listen(fn process, message any, sec int) error {
 	err := database.connect()
 
 	if err != nil {
@@ -40,7 +40,7 @@ func (database PgDatabase) listen(fn process, message any) error {
 
 	defer pool.Close()
 
-	database.listenEvery(5, fn, message)
+	database.listenEvery(sec, fn, message)
 
 	log.Printf("Successfully connected to the database!")
 

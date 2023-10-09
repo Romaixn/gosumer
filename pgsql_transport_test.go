@@ -85,7 +85,7 @@ func TestPgListen(t *testing.T) {
 	defer pool.Close()
 
 	go func() {
-		err := database.listen(processMessage, Message{})
+		err := database.listen(processMessage, Message{}, 5)
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
