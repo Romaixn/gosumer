@@ -7,6 +7,7 @@
 - Consume your messages directly with Go code
 - PostgreSQL support
 - AMQP support
+- Redis support
 
 ## Installation
 Install gosumer with Go
@@ -38,7 +39,7 @@ Don't forget to specify in the `routing` part the message to process in Go
 
 
 ### RabbitMQ
-Create a env variable to create a custom queue (in this example `go` is the name of the queue):
+Create an env variable to create a custom queue (in this example `go` is the name of the queue):
 ```
 RABBITMQ_GO_TRANSPORT_DSN=amqp://guest:guest@localhost:5672/%2f/go
 ```
@@ -56,6 +57,25 @@ framework:
                     max_retries: 3
                     multiplier: 2
 ```
+
+### Redis
+Create an env variable for Redis:
+```
+REDIS_TRANSPORT_DSN=redis://localhost:6379/messages
+```
+
+Add the following to your `config/packages/messenger.yaml`:
+
+```yaml
+framework:
+    messenger:
+        transports:
+            async:
+                dsn: "%env(MESSENGER_TRANSPORT_DSN)%"
+                options: []
+```
+
+Make sure to specify the message routing in the `routing` section to process in Go.
 
 ## Usage
 ### Configure the transport
@@ -79,6 +99,18 @@ database := gosumer.RabbitMQ{
     User:     "guest",
     Password: "guest",
     Queue:    "go",
+}
+```
+
+For Redis:
+```go
+database := gosumer.Redis{
+    Host:     "localhost",
+    Port:     6379,
+    User:     "username",
+    Password: "password",
+    DB:       0,
+    Channel:  "channel_name",
 }
 ```
 
