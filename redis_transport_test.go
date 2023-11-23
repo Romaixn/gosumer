@@ -33,7 +33,7 @@ func TestRedisListen(t *testing.T) {
 	}
 
 	go func() {
-		err := transport.listen(processMessage, Message{})
+		err := transport.listen(processMessage, Message{}, 0)
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}

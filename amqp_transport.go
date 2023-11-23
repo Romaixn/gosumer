@@ -17,6 +17,7 @@ type RabbitMQ struct {
 
 var connection *amqp.Connection
 var channel *amqp.Channel
+var _ Transport = (*RabbitMQ)(nil)
 
 func (rabbitmq RabbitMQ) connect() error {
 	var err error
@@ -38,7 +39,7 @@ func (rabbitmq RabbitMQ) connect() error {
 	return nil
 }
 
-func (rabbitmq RabbitMQ) listen(fn process, message any) error {
+func (rabbitmq RabbitMQ) listen(fn process, message any, _ int) error {
 	err := rabbitmq.connect()
 	if err != nil {
 		return err
