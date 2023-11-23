@@ -19,6 +19,7 @@ type PgDatabase struct {
 }
 
 var pool *pgxpool.Pool
+var _ Transport = (*PgDatabase)(nil)
 
 func (database PgDatabase) connect() error {
 	var err error
@@ -72,17 +73,12 @@ func (database PgDatabase) listen(fn process, message any, sec int) error {
 }
 
 func (database PgDatabase) listenEvery(seconds int, fn process, message any) {
-	ticker := time.NewTicker(time.Duration(seconds) * time.Second)
+	delay := time.Duration(seconds) * time.Second
 
 	go func() error {
 		for {
-			select {
-			case <-ticker.C:
-				err := database.processMessage(fn, message)
-				if err != nil {
-					continue
-				}
-			}
+			<- time.After(delay)
+			_ = database.processMessage(fn, message)
 		}
 	}()
 }

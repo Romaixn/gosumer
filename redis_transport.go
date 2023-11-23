@@ -17,6 +17,7 @@ type Redis struct {
 }
 
 var rdb *redis.Client
+var _ Transport = (*Redis)(nil)
 
 func (red Redis) connect() error {
 	var err error
@@ -36,7 +37,7 @@ func (red Redis) connect() error {
 	return nil
 }
 
-func (red Redis) listen(fn process, message any) error {
+func (red Redis) listen(fn process, message any, _ int) error {
 	err := red.connect()
 	if err != nil {
 		return err
