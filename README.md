@@ -91,6 +91,18 @@ database := gosumer.PgDatabase{
 }
 ```
 
+If you are using a custom schema, you can specify it with backticks:
+```go
+database := gosumer.PgDatabase{
+Host:      "localhost",
+Port:      5432,
+User:      "app",
+Password:  "!ChangeMe!",
+Database:  "app",
+TableName: `"myschema"."messenger_messages"`,
+}
+```
+
 For RabbitMQ:
 ```go
 database := gosumer.RabbitMQ{

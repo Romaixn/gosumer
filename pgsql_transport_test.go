@@ -3,6 +3,7 @@ package gosumer
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,12 +37,35 @@ func setupDatabase(t *testing.T) (*pgxpool.Pool, PgDatabase) {
 		TableName: "table_name",
 	}
 
+	return initDatabase(t, database), database
+}
+
+func setupDatabaseWithSchema(t *testing.T) (*pgxpool.Pool, PgDatabase) {
+	database := PgDatabase{
+		Host:      "localhost",
+		Port:      5432,
+		User:      "postgres",
+		Password:  "postgres",
+		Database:  "postgres",
+		TableName: `"table_name"."schema_name"`,
+	}
+
+	return initDatabase(t, database), database
+}
+
+func initDatabase(t *testing.T, database PgDatabase) (pool *pgxpool.Pool) {
 	pool, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%d/%s", database.User, database.Password, database.Host, database.Port, database.Database))
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
 	pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", database.TableName))
+
+	if strings.Contains(database.TableName, ".") {
+		schema := strings.Split(database.TableName, ".")[0]
+		pool.Exec(context.Background(), fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
+	}
+
 	pool.Exec(context.Background(), fmt.Sprintf("CREATE TABLE %s (id BIGSERIAL NOT NULL, body TEXT NOT NULL, headers TEXT NOT NULL, queue_name VARCHAR(190) NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, available_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, delivered_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, PRIMARY KEY(id))", database.TableName))
 
 	_, err = pool.Exec(context.Background(), fmt.Sprintf("INSERT INTO %s (body, headers, queue_name, created_at, available_at, delivered_at) VALUES ('{\"id\": 1}', '{}', 'go', NOW(), NOW(), NULL)", database.TableName))
@@ -54,7 +78,7 @@ func setupDatabase(t *testing.T) (*pgxpool.Pool, PgDatabase) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	return pool, database
+	return pool
 }
 
 func TestPgDelete(t *testing.T) {
@@ -83,6 +107,18 @@ func TestPgProcessMessage(t *testing.T) {
 func TestPgListen(t *testing.T) {
 	pool, database := setupDatabase(t)
 	defer pool.Close()
+
+	doTestPgListen(t, database)
+}
+
+func TestPgListenWithSchema(t *testing.T) {
+	pool, database := setupDatabaseWithSchema(t)
+	defer pool.Close()
+
+	doTestPgListen(t, database)
+}
+
+func doTestPgListen(t *testing.T, database PgDatabase) {
 
 	go func() {
 		err := database.listen(processMessage, Message{}, 5)

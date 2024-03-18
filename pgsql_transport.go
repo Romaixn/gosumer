@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,6 +33,15 @@ func (database PgDatabase) connect() error {
 	return nil
 }
 
+func (database PgDatabase) GetChannelName() string {
+	// Symfony uses the format "schema.table" for channel name
+	if strings.Contains(database.TableName, ".") {
+		return fmt.Sprintf(`"%s"`, strings.Replace(database.TableName, `"`, "", -1))
+	}
+
+	return database.TableName
+}
+
 func (database PgDatabase) listen(fn process, message any, sec int) error {
 	err := database.connect()
 
@@ -45,12 +55,12 @@ func (database PgDatabase) listen(fn process, message any, sec int) error {
 
 	log.Printf("Successfully connected to the database!")
 
-	_, err = pool.Exec(context.Background(), fmt.Sprintf("LISTEN %s", database.TableName))
+	_, err = pool.Exec(context.Background(), fmt.Sprintf("LISTEN %s", database.GetChannelName()))
 	if err != nil {
 		return err
 	}
 
-	defer pool.Exec(context.Background(), fmt.Sprintf("UNLISTEN %s", database.TableName))
+	defer pool.Exec(context.Background(), fmt.Sprintf("UNLISTEN %s", database.GetChannelName()))
 
 	conn, err := pool.Acquire(context.Background())
 	if err != nil {
@@ -77,7 +87,7 @@ func (database PgDatabase) listenEvery(seconds int, fn process, message any) {
 
 	go func() error {
 		for {
-			<- time.After(delay)
+			<-time.After(delay)
 			_ = database.processMessage(fn, message)
 		}
 	}()
