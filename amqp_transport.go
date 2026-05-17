@@ -64,7 +64,7 @@ func (rabbitmq RabbitMQ) listen(fn process, message any, _ int) error {
 	msgs, err := channel.Consume(
 		q.Name,
 		"",
-		true,
+		false,
 		false,
 		false,
 		false,
@@ -83,11 +83,16 @@ func (rabbitmq RabbitMQ) listen(fn process, message any, _ int) error {
 		for d := range msgs {
 			msg, err := formatMessage(string(d.Body), message)
 			if err != nil {
-				log.Fatal(err)
+				_ = d.Nack(false, true)
+				continue
 			}
 
-			var e chan error
-			go fn(msg, e)
+			if err := executeProcess(fn, msg); err != nil {
+				_ = d.Nack(false, true)
+				continue
+			}
+
+			_ = d.Ack(false)
 		}
 	}()
 

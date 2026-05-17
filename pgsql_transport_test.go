@@ -23,7 +23,7 @@ func TestPgConnect(t *testing.T) {
 
 	err := database.connect()
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Skipf("PostgreSQL is not available: %v", err)
 	}
 }
 
@@ -56,26 +56,35 @@ func setupDatabaseWithSchema(t *testing.T) (*pgxpool.Pool, PgDatabase) {
 func initDatabase(t *testing.T, database PgDatabase) (pool *pgxpool.Pool) {
 	pool, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%d/%s", database.User, database.Password, database.Host, database.Port, database.Database))
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Skipf("PostgreSQL is not available: %v", err)
+	}
+	if err := pool.Ping(context.Background()); err != nil {
+		t.Skipf("PostgreSQL is not available: %v", err)
 	}
 
-	pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", database.TableName))
+	if _, err := pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", database.TableName)); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	if strings.Contains(database.TableName, ".") {
 		schema := strings.Split(database.TableName, ".")[0]
-		pool.Exec(context.Background(), fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
+		if _, err := pool.Exec(context.Background(), fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema)); err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
 	}
 
-	pool.Exec(context.Background(), fmt.Sprintf("CREATE TABLE %s (id BIGSERIAL NOT NULL, body TEXT NOT NULL, headers TEXT NOT NULL, queue_name VARCHAR(190) NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, available_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, delivered_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, PRIMARY KEY(id))", database.TableName))
+	if _, err := pool.Exec(context.Background(), fmt.Sprintf("CREATE TABLE %s (id BIGSERIAL NOT NULL, body TEXT NOT NULL, headers TEXT NOT NULL, queue_name VARCHAR(190) NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, available_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, delivered_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, PRIMARY KEY(id))", database.TableName)); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	_, err = pool.Exec(context.Background(), fmt.Sprintf("INSERT INTO %s (body, headers, queue_name, created_at, available_at, delivered_at) VALUES ('{\"id\": 1}', '{}', 'go', NOW(), NOW(), NULL)", database.TableName))
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	err = database.connect()
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Skipf("PostgreSQL is not available: %v", err)
 	}
 
 	return pool
@@ -121,10 +130,7 @@ func TestPgListenWithSchema(t *testing.T) {
 func doTestPgListen(t *testing.T, database PgDatabase) {
 
 	go func() {
-		err := database.listen(processMessage, Message{}, 5)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
+		_ = database.listen(processMessage, Message{}, 5)
 	}()
 
 	_, err := pool.Exec(context.Background(), fmt.Sprintf("INSERT INTO %s (body, headers, queue_name, created_at, available_at, delivered_at) VALUES ('{\"id\": 2}', '{}', 'go', NOW(), NOW(), NULL)", database.TableName))

@@ -30,7 +30,7 @@ func (database PgDatabase) connect() error {
 		return err
 	}
 
-	return nil
+	return pool.Ping(context.Background())
 }
 
 func (database PgDatabase) GetChannelName() string {
@@ -115,15 +115,9 @@ func (database PgDatabase) processMessage(fn process, message any) error {
 		return err
 	}
 
-	e := make(chan error)
-	go fn(msg, e)
-
-	processErr := <-e
-	if processErr != nil {
-		return processErr
+	if err := executeProcess(fn, msg); err != nil {
+		return err
 	}
 
-	go database.delete(messengerMessage.ID)
-
-	return nil
+	return database.delete(messengerMessage.ID)
 }

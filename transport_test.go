@@ -32,7 +32,7 @@ func (transport TestTransport) connect() error {
 }
 
 func (transport TestTransport) listen(fn process, message any, sec int) error {
-	go fn(message, make(chan error))
+	go fn(message, make(chan error, 1))
 
 	return nil
 }

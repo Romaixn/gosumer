@@ -43,18 +43,22 @@ func (red Redis) listen(fn process, message any, _ int) error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
 	ctx := context.Background()
 	sub := rdb.Subscribe(ctx, red.Channel)
 	defer sub.Close()
 	for {
 		msg, err := sub.ReceiveMessage(ctx)
 		if err != nil {
-			panic(err)
+			return err
 		}
-		var e chan error
-		go fn(msg, e)
+
+		formattedMessage, err := formatMessage(msg.Payload, message)
+		if err != nil {
+			continue
+		}
+
+		if err := executeProcess(fn, formattedMessage); err != nil {
+			continue
+		}
 	}
 }
