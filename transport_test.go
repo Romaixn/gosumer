@@ -8,18 +8,42 @@ import (
 )
 
 func TestFormatMessage(t *testing.T) {
-	var msg any
-
 	jsonData := `{"id": 1, "name": "John Doe"}`
 
-	_, err := formatMessage(jsonData, &msg)
+	type Payload struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
+	formatted, err := formatMessage(jsonData, Payload{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
+	msg, ok := formatted.(Payload)
+	if !ok {
+		t.Fatalf("Expected payload type, got %T", formatted)
+	}
+
+	assert.Equal(t, 1, msg.ID)
+	assert.Equal(t, "John Doe", msg.Name)
+
+	formattedPtr, err := formatMessage(jsonData, &Payload{})
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	msgPtr, ok := formattedPtr.(*Payload)
+	if !ok {
+		t.Fatalf("Expected *Payload type, got %T", formattedPtr)
+	}
+
+	assert.Equal(t, 1, msgPtr.ID)
+	assert.Equal(t, "John Doe", msgPtr.Name)
+
 	invalidJsonData := `{"id": 1, "name": "John Doe"`
 
-	_, err = formatMessage(invalidJsonData, &msg)
+	_, err = formatMessage(invalidJsonData, Payload{})
 	if err == nil {
 		t.Errorf("Expected an error for invalid JSON data, but got none")
 	}
