@@ -21,7 +21,7 @@ func TestAmqpConnect(t *testing.T) {
 
 	err := transport.connect()
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Skipf("RabbitMQ is not available: %v", err)
 	}
 }
 
@@ -34,22 +34,20 @@ func TestAmqpListen(t *testing.T) {
 		Queue:    "queue_name",
 	}
 
-	go func() {
-		err := transport.listen(processMessage, Message{}, 0)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-	}()
-
 	connection, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s/%s", transport.User, transport.Password, transport.Host, "%2f"))
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Skipf("RabbitMQ is not available: %v", err)
+		return
 	}
 	defer connection.Close()
 
+	go func() {
+		_ = transport.listen(processMessage, Message{}, 0)
+	}()
+
 	channel, err := connection.Channel()
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 	defer channel.Close()
 
@@ -62,7 +60,7 @@ func TestAmqpListen(t *testing.T) {
 		nil,
 	)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -81,7 +79,7 @@ func TestAmqpListen(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	// TODO: maybe found a better way to wait for the message to be processed

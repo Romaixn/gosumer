@@ -45,3 +45,10 @@ func Listen(transport Transport, fn process, message any, sec int) error {
 
 	return nil
 }
+
+func executeProcess(fn process, message any) error {
+	errChan := make(chan error, 1)
+	go fn(message, errChan)
+
+	return <-errChan
+}
